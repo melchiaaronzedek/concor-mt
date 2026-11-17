@@ -3845,3 +3845,27 @@ body.lp,body.lp .app,body.lp main{overflow-x:clip}
   .item[style*="minmax(0,1fr) auto"] > *{grid-column:auto;grid-row:auto}
   .item[style*="minmax(0,1fr) auto"] > .end{margin-top:0;align-self:center;justify-content:flex-end}
 }
+
+/* short and full versions of a topic, and the lecture viewer */
+.vwrap .vsw{margin-top:14px;width:max-content;max-width:100%}
+.vwrap .vsw a{cursor:pointer}
+.vwrap[data-v="short"] .v-full,.vwrap[data-v="full"] .v-short{display:none}
+.lecs{display:grid;gap:10px;margin-top:14px}
+.lecc{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border:0;border-radius:var(--r-card,16px);background:var(--surface);box-shadow:0 0 0 1px var(--rule);color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+.lecc:hover{box-shadow:0 0 0 1px var(--accent)}
+.lecc .lc-i{flex:none;display:grid;place-items:center;width:44px;height:52px;border-radius:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:750;letter-spacing:.04em}
+.lecc b{display:block;font-size:15.5px;line-height:1.35}
+.lecc span span{display:block;margin-top:3px;font-size:13px;color:var(--ink-3)}
+.lecc .end{margin-left:auto;color:var(--ink-3)}
+body.lv-open{overflow:hidden}
+.lecview{position:fixed;inset:0;z-index:1300;display:flex;flex-direction:column;background:var(--paper);animation:fadeIn 160ms ease both}
+.lv-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--rule);background:var(--surface)}
+.lv-t{flex:1;min-width:0}
+.lv-t b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-t span{font-size:12.5px;color:var(--ink-3)}
+.lv-b{flex:none;padding:9px 14px;border:0;border-radius:999px;background:var(--paper-2);color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+.lv-b[aria-disabled="true"]{opacity:.4;pointer-events:none}
+.lv-pages{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px 12px 40px}
+.lv-pg{background:#fff;border-radius:4px;box-shadow:0 1px 6px rgba(0,0,0,.18)}
+.lv-msg{margin:24px 8px;color:var(--ink-2);text-align:center}
+.lv-if{width:100%;max-width:900px;height:80vh;border:0;background:#fff}

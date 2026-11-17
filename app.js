@@ -9,7 +9,7 @@
 "use strict";
 
 var EXAM = new Date(2026, 10, 21, 9, 0, 0);      // the CBT, Saturday 21 November 2026
-var VER = "5dd903ec23";
+var VER = "9dd792722f";
 var BRAND = "CONCOR MT Compass";
 
 /* ── helpers ── */
@@ -45,11 +45,71 @@ function loadData() {
   var k = takeKey();
   if (!k) return Promise.reject(new Error("nokey"));
   var key;
-  return crypto.subtle.importKey("raw", b64u(k), "AES-GCM", false, ["decrypt"]).then(function (x) { key = x; return fetch("p/data.bin?v=" + VER); })
+  return crypto.subtle.importKey("raw", b64u(k), "AES-GCM", false, ["decrypt"]).then(function (x) { key = x; LKEY = x; return fetch("p/data.bin?v=" + VER); })
     .then(function (r) { if (!r.ok) throw new Error("The study data did not download (" + r.status + ")."); return r.arrayBuffer(); })
     .then(function (buf) { return crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12)).catch(function () { throw new Error("badkey"); }); })
     .then(function (pt) { return new Response(new Blob([pt]).stream().pipeThrough(new DecompressionStream("gzip"))).json(); })
     .then(function (j) { D = j; QIDX = null; PIDX = null; });
+}
+/* ── the coaching lecture PDFs: sealed one by one (p/l/<id>.bin), opened in a page viewer (pdf.js) ── */
+var LKEY = null;
+function lecBlob(id) {
+  return fetch("p/l/" + id + ".bin?v=" + VER).then(function (r) { if (!r.ok) throw new Error("The lecture did not download (" + r.status + ")."); return r.arrayBuffer(); })
+    .then(function (buf) { return crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, LKEY, buf.slice(12)); })
+    .then(function (pt) { return new Blob([pt], { type: "application/pdf" }); });
+}
+function pdfLib() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return new Promise(function (res, rej) {
+    var s = document.createElement("script"), B = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+    s.src = B + "pdf.min.js"; s.onerror = rej;
+    s.onload = function () { window.pdfjsLib.GlobalWorkerOptions.workerSrc = B + "pdf.worker.min.js"; res(window.pdfjsLib); };
+    document.head.appendChild(s);
+  });
+}
+function openLec(id) {
+  var f = ((D.lectures || {}).files || {})[id]; if (!f || !LKEY) return;
+  var z = document.createElement("div"), url = null;
+  z.className = "lecview"; z.setAttribute("role", "dialog"); z.setAttribute("aria-label", f.t);
+  z.innerHTML = '<div class="lv-bar"><div class="lv-t"><b>' + h(f.t) + '</b><span>Lecture notes · ' + f.pages + ' pages</span></div><a class="lv-b lv-dl" download="' + h(f.t) + '.pdf" aria-disabled="true">Save</a><button class="lv-b lv-x" aria-label="Close">Close</button></div>' +
+    '<div class="lv-pages"><p class="lv-msg">Opening the lecture…</p></div>';
+  document.body.appendChild(z); document.body.classList.add("lv-open");
+  function close() { z.remove(); document.body.classList.remove("lv-open"); if (url) URL.revokeObjectURL(url); document.removeEventListener("keydown", esc); }
+  function esc(e) { if (e.key === "Escape") close(); }
+  z.querySelector(".lv-x").addEventListener("click", close); document.addEventListener("keydown", esc);
+  var pages = z.querySelector(".lv-pages");
+  lecBlob(id).then(function (blob) {
+    url = URL.createObjectURL(blob); var dl = z.querySelector(".lv-dl"); dl.href = url; dl.removeAttribute("aria-disabled");
+    return pdfLib().then(function (lib) { return blob.arrayBuffer().then(function (ab) { return lib.getDocument({ data: ab }).promise; }); })
+      .then(function (pdf) {
+        pages.innerHTML = "";
+        var w = Math.min(pages.clientWidth - 24, 900), dpr = Math.min(window.devicePixelRatio || 1, 2.5), n = 0;
+        function next() {
+          if (++n > pdf.numPages || !z.isConnected) return;
+          return pdf.getPage(n).then(function (pg) {
+            var v1 = pg.getViewport({ scale: 1 }), sc = w / v1.width, vp = pg.getViewport({ scale: sc * dpr }), c = document.createElement("canvas");
+            c.width = vp.width; c.height = vp.height; c.style.width = w + "px"; c.style.height = (vp.height / dpr) + "px"; c.className = "lv-pg";
+            pages.appendChild(c);
+            return pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise.then(next);
+          });
+        }
+        return next();
+      }).catch(function () { pages.innerHTML = '<iframe class="lv-if" src="' + url + '" title="' + h(f.t) + '"></iframe><p class="lv-msg">If the pages do not show, tap Save to open the PDF in your phone&rsquo;s viewer.</p>'; });
+  }).catch(function (e) { pages.innerHTML = '<p class="lv-msg">' + h(e.message || "The lecture could not be opened.") + '</p>'; });
+}
+document.addEventListener("click", function (e) {
+  var b = e.target.closest && e.target.closest("[data-lec]");
+  if (b) { e.preventDefault(); openLec(b.dataset.lec); return; }
+  var v = e.target.closest && e.target.closest("[data-ver]");
+  if (v) {
+    var pane = v.closest(".vwrap"); if (!pane) return;
+    lsSet(pane.dataset.k, v.dataset.ver); pane.dataset.v = v.dataset.ver;
+    pane.querySelectorAll("[data-ver]").forEach(function (x) { x.classList.toggle("on", x.dataset.ver === v.dataset.ver); x.setAttribute("aria-selected", x.dataset.ver === v.dataset.ver); });
+  }
+});
+function lecCard(id) {
+  var f = D.lectures.files[id];
+  return '<button class="lecc reveal" data-lec="' + h(id) + '"><span class="lc-i" aria-hidden="true">PDF</span><span><b>' + h(f.t) + '</b><span>Lecture notes · ' + f.pages + ' pages · read in 15 to 25 minutes</span></span><span class="end">' + arr() + '</span></button>';
 }
 function qById(id) { if (!QIDX) { QIDX = {}; D.qs.forEach(function (q) { QIDX[q.id] = q; }); } return QIDX[id]; }
 function paper(id) { return D.papers.filter(function (p) { return p.id === id; })[0]; }
@@ -690,16 +750,25 @@ function topicPage(sk, t) {
   var prev = list[idx - 1], next = list[idx + 1], steps = [];
   function step(id, title, body) { steps.push([id, title]); return '<section class="band tstep" id="' + id + '"><h2 class="sec-h reveal"><span class="sn">' + steps.length + '</span>' + title + '</h2>' + body + '</section>'; }
   function ul(a) { return '<ul class="pts">' + a.map(function (x) { var r = hx(x); return '<li' + (r.hot ? ' class="hot"' : '') + '>' + r.t + '</li>'; }).join("") + '</ul>'; }
-  var body = "";
+  var body = "", L = (((D.lectures || {}).map || {})[tkey(sk, t)] || []), vk = L.length ? "cc-ver" : "cc-ver0", ver = lsGet(vk, L.length ? "short" : "full");
+  var shortV = (L.length ? '<p class="muted reveal" style="margin-top:14px">The coaching lecture for this topic: short, exam-focused, with practice questions at the end. Read it, then practise. Open the full version when a question beats you.</p><div class="lecs">' + L.map(lecCard).join("") + '</div>'
+      : '<p class="muted reveal" style="margin-top:14px">No lecture covers this topic, so the short version is the key lines below. The full version has the complete notes.</p>') +
+    (N && N.recap && (N.recap.lines || []).length ? '<div class="note reveal" style="margin-top:16px"><h3>Key lines</h3>' + ul(N.recap.lines) + '</div>' : '');
+  function vsw(full) {
+    return '<div class="vwrap" data-k="' + vk + '" data-v="' + ver + '"><div class="seg seg-2 vsw reveal" role="tablist">' +
+      '<a role="tab" data-ver="short" class="' + (ver === "short" ? "on" : "") + '" aria-selected="' + (ver === "short") + '">Short version</a>' +
+      '<a role="tab" data-ver="full" class="' + (ver === "full" ? "on" : "") + '" aria-selected="' + (ver === "full") + '">Full version</a></div>' +
+      '<div class="v-short">' + shortV + '</div><div class="v-full">' + full + '</div></div>';
+  }
   if (N) {
-    body += step("notes", "Learn", notesV4(N));
+    body += step("notes", "Learn", vsw(notesV4(N)));
     if ((N.formulas || []).length) body += step("formulas", "Formulas, rules and numbers", '<div class="fxg">' + N.formulas.map(function (f) { return '<div class="fxc reveal"><code>' + h(f.f) + '</code>' + (f.note ? '<span>' + h(f.note) + '</span>' : '') + '</div>'; }).join("") + '</div>');
     if ((N.traps || []).length || (N.method || []).length) body += step("traps", "Traps", '<div class="two">' +
       ((N.method || []).length ? '<div class="note reveal"><h3>How to answer</h3><ol class="pts">' + N.method.map(function (x) { return '<li>' + h(x) + '</li>'; }).join("") + '</ol></div>' : '') +
       ((N.traps || []).length ? '<div class="note trap reveal"><h3>Where marks are lost</h3>' + ul(N.traps) + '</div>' : '') + '</div>');
     if ((N.examples || []).length) body += step("examples", "Worked examples", '<p class="muted reveal" style="margin-top:10px">Try each one first. The answer stays hidden until you ask.</p><div class="exs">' + N.examples.map(function (e, k) {
       return '<details class="ex reveal"><summary><span class="exn">' + (k + 1) + '</span><span class="exq">' + h(e.q) + '</span></summary><div class="exa"><b>' + h(e.a) + '</b><p>' + h(e.how) + '</p></div></details>'; }).join("") + '</div>');
-  } else body += step("notes", "Learn", '<p class="muted reveal" style="margin-top:12px">The notes for this topic are being written and will appear here on the next update. Its questions below are ready.</p>');
+  } else body += step("notes", "Learn", L.length ? vsw('<p class="muted reveal" style="margin-top:12px">Our full notes for this topic are not written yet. Read the lecture in the short version.</p>') : '<p class="muted reveal" style="margin-top:12px">The notes for this topic are being written and will appear here on the next update. Its questions below are ready.</p>');
   var vids = (D.videos || {})[tkey(sk, t)] || [];
   if (vids.length) body += step("watch", "Watch", '<p class="muted reveal" style="margin-top:10px">The best classes we found for this topic, best first. Tap to play here.</p><div class="vgrid">' + vids.map(vidCard).join("") + '</div>');
   body += step("practise", "Practise", '<div class="cta reveal"><div><b>' + qs.length + ' question' + (qs.length === 1 ? '' : 's') + '</b><span>' + srcSplit(qs) + '. ' + (st.done ? st.done + ' done, ' + st.acc + '% right.' : 'None attempted yet.') + '</span></div>' +
