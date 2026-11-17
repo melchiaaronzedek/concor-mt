@@ -9,7 +9,7 @@
 "use strict";
 
 var EXAM = new Date(2026, 10, 21, 9, 0, 0);      // the CBT, Saturday 21 November 2026
-var VER = "d44f423cf6";
+var VER = "79446acf12";
 var BRAND = "CONCOR MT Compass";
 
 /* ── helpers ── */
@@ -732,31 +732,32 @@ document.addEventListener("click", function (e) {
   b.replaceWith(f);
 });
 function srcSplit(qs) {
-  var by = {}; qs.forEach(function (q) { var k = q.kind === "pyq" ? "from past papers" : q.kind === "bank" ? "from the C&O question bank" : "written for this site"; by[k] = (by[k] || 0) + 1; });
+  var by = {}; qs.forEach(function (q) { var k = q.kind === "pyq" ? "from past papers" : q.kind === "set" ? "from the PYQ-level sets" : q.kind === "bank" ? "from the C&O question bank" : "written for this site"; by[k] = (by[k] || 0) + 1; });
   return Object.keys(by).map(function (k) { return by[k] + " " + k; }).join(", ") || "No questions yet";
 }
 
 /* ── practice ── */
 function orderQs(qs) {
-  var rank = { pyq: 0, own: 1, bank: 2, mock: 3 };
-  return qs.map(function (q, i) { return [q, i]; }).sort(function (a, b) { return (rank[a[0].kind] || 3) - (rank[b[0].kind] || 3) || (b[0].y || 0) - (a[0].y || 0) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+  var rank = { pyq: 0, set: 1, own: 2, bank: 3, mock: 4 };
+  return qs.map(function (q, i) { return [q, i]; }).sort(function (a, b) { return (rank[a[0].kind] == null ? 4 : rank[a[0].kind]) - (rank[b[0].kind] == null ? 4 : rank[b[0].kind]) || (b[0].y || 0) - (a[0].y || 0) || a[1] - b[1]; }).map(function (x) { return x[0]; });
 }
 V["practice"] = function (sk, topic) {
-  if (sk && (topic || sk === "pyq" || sk === "uiic")) {
+  if (sk && (topic || sk === "pyq" || sk === "uiic" || sk === "set")) {
     var t = topic ? decodeURIComponent(topic) : "", qs, label;
     if (sk === "pyq") { qs = D.qs.filter(function (q) { return q.kind === "pyq" && (!t || q.s === t); }); label = "Every past-paper question" + (t ? ", " + secOf(t).short : ""); }
     else if (sk === "uiic") { qs = D.qs.filter(function (q) { return /CONCOR/.test(q.src || "") && q.kind === "pyq" && (!t || q.s === t); }); label = "Every question from CONCOR's own papers" + (t ? ", " + secOf(t).short : ""); }
+    else if (sk === "set") { qs = D.qs.filter(function (q) { return q.kind === "set" && /PYQ level/.test(q.src || "") && (!t || q.t === t); }); label = "Every PYQ-level set question" + (t ? ", " + t : ""); }
     else if (t === "*") { qs = secQs(sk); label = secOf(sk).short + ", all topics"; }
     else { qs = topicQs(sk, t); label = t; }
     qs = orderQs(qs);
     if (!qs.length) return blank("No questions here yet.");
     var host = quiz({
-      qs: qs, back: "#/practice" + (sk !== "pyq" && sk !== "uiic" ? "/" + sk : ""), backLabel: sk === "pyq" || sk === "uiic" ? "Practice" : secOf(sk).short,
-      head: sk !== "pyq" && sk !== "uiic" && t !== "*" && D.notes[tkey(sk, t)] ? '<a class="notes-link" href="' + learnHref(sk, t) + '">' + (learned(sk, t) ? "Notes for " : "Read ") + h(t) + ' first' + arr() + '</a>' : '<h1 class="page-h" style="font-size:clamp(24px,3vw,32px);margin:8px 0 0">' + h(label) + '</h1>',
+      qs: qs, back: "#/practice" + (sk !== "pyq" && sk !== "uiic" && sk !== "set" ? "/" + sk : ""), backLabel: sk === "pyq" || sk === "uiic" || sk === "set" ? "Practice" : secOf(sk).short,
+      head: sk !== "pyq" && sk !== "uiic" && sk !== "set" && t !== "*" && D.notes[tkey(sk, t)] ? '<a class="notes-link" href="' + learnHref(sk, t) + '">' + (learned(sk, t) ? "Notes for " : "Read ") + h(t) + ' first' + arr() + '</a>' : '<h1 class="page-h" style="font-size:clamp(24px,3vw,32px);margin:8px 0 0">' + h(label) + '</h1>',
       get: function (k) { var v = ST.prac[qs[k].id]; return v == null ? null : v; },
       set: function (k, v) { ST.prac[qs[k].id] = v; logAnswer(qs[k], v); save(); },
       startAt: function () { for (var k = 0; k < qs.length; k++) if (ST.prac[qs[k].id] == null) return k; return 0; },
-      done: function () { location.hash = "#/practice" + (sk !== "pyq" && sk !== "uiic" ? "/" + sk : ""); }
+      done: function () { location.hash = "#/practice" + (sk !== "pyq" && sk !== "uiic" && sk !== "set" ? "/" + sk : ""); }
     });
     setAside(host.__pads());
     return host;
@@ -774,7 +775,7 @@ V["practice"] = function (sk, topic) {
   var npyq = D.qs.filter(function (q) { return q.kind === "pyq"; }).length;
   return '<section class="head"><span class="kicker reveal">' + D.qs.length.toLocaleString("en-IN") + ' questions · ' + npyq + ' from past papers</span>' +
       '<h1 class="page-h reveal">Practice.</h1><p class="lede reveal">Untimed, the answer and its reason shown as soon as you pick. Wrong answers go to the error log.</p>' +
-      '<div class="reveal" style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn key" href="#/practice/uiic">Every CONCOR question · ' + D.qs.filter(function (q) { return q.kind === "pyq" && /CONCOR/.test(q.src || ""); }).length + arr() + '</a><a class="btn quiet" href="#/practice/pyq">Every past-paper question' + arr() + '</a><a class="btn quiet" href="#/errors">Error log' + arr() + '</a></div></section>' +
+      '<div class="reveal" style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn key" href="#/practice/uiic">Every CONCOR question · ' + D.qs.filter(function (q) { return q.kind === "pyq" && /CONCOR/.test(q.src || ""); }).length + arr() + '</a><a class="btn quiet" href="#/practice/set">PYQ-level PK sets · ' + D.qs.filter(function (q) { return q.kind === "set" && /PYQ level/.test(q.src || ""); }).length + arr() + '</a><a class="btn quiet" href="#/practice/pyq">Every past-paper question' + arr() + '</a><a class="btn quiet" href="#/errors">Error log' + arr() + '</a></div></section>' +
     [["pre", "The five sections of the CBT"]].map(function (pp) {
       return '<section class="band"><h2 class="sec-h reveal">' + pp[1] + '</h2><div class="tgrid" style="margin-top:18px">' + secsOf(pp[0]).map(function (x) {
         var s = statOf(secQs(x.k));
@@ -815,12 +816,12 @@ V["mocks"] = function () {
   D.papers.forEach(function (p) { var g = p.group || p.year; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(p); });
   var hist = mockHistory();
   return '<section class="head"><span class="kicker reveal">' + D.papers.length + ' papers · ' + hist.length + ' taken</span><h1 class="page-h reveal">Mocks.</h1>' +
-      '<p class="lede reveal">Full mocks in the exact CONCOR pattern (100 questions, 90 minutes, five sections on one clock), CONCOR&rsquo;s own official model papers (2009, 2012 and 2015, every answer re-checked), and practice sets. No memory-based recall of a real CONCOR sitting exists: CONCOR has run few open MT exams, so the official model papers are the best evidence of what it asks. Mock mode runs them like the hall: one clock, section tabs you can move between, Save &amp; Next, and a quarter mark off for each wrong answer.</p></section>' +
+      '<p class="lede reveal">Full mocks in the exact CONCOR pattern (100 questions, 90 minutes, five sections on one clock). The first 23 carry one whole PYQ-level Professional Knowledge set each: 13 on the MT (C&amp;O) syllabus, then 10 on the AO syllabus&rsquo;s EXIM and marketing ground. Then the 8 mixed mocks, CONCOR&rsquo;s own official model papers (2009, 2012 and 2015, every answer re-checked), the 23 sets on their own (50 questions, 45 minutes), topic sets and GA practice sets. Take MT mocks first. No memory-based recall of a real CONCOR sitting exists: CONCOR has run few open MT exams, so the official model papers are the best evidence of what it asks. Mock mode runs them like the hall: one clock, section tabs you can move between, Save &amp; Next, and a quarter mark off for each wrong answer.</p></section>' +
     order.map(function (g) {
-      return '<section class="band"><h2 class="sec-h reveal">' + h(g) + '</h2><div class="list" style="margin-top:18px">' + groups[g].map(function (p) {
+      return '<section class="band"><h2 class="sec-h reveal">' + h(g) + '</h2><div class="list" style="margin-top:18px">' + groups[g].map(function (p, i) {
         var a = att(p.id), s = a && a.done ? paperScore(p.id) : null;
         if (p.desc) return '<a class="item reveal" href="#/mock/' + encodeURIComponent(p.id) + '/paper"><span class="num">✎</span><span><span class="t">' + h(p.label) + '</span><span class="d">Descriptive: the questions as asked, to practise writing against the clock</span></span><span class="end">' + arr() + '</span></a>';
-        return '<div class="item mrow reveal' + (s ? " done" : "") + '"><a class="mr-main" href="#/mock/' + encodeURIComponent(p.id) + '"><span class="num">' + (p.kind === "P1" ? "1" : "2") + '</span>' +
+        return '<div class="item mrow reveal' + (s ? " done" : "") + '"><a class="mr-main" href="#/mock/' + encodeURIComponent(p.id) + '"><span class="num">' + (i + 1) + '</span>' +
           '<span><span class="t">' + h(p.label) + '</span><span class="d">' + p.qids.length + ' questions · ' + p.mins + ' min' + (a && !a.done ? ' · in progress' : '') + '</span></span>' +
           '<span class="end">' + (s ? '<b>' + fmtM(s.marks) + '</b>of ' + fmtM(s.max) : '') + '</span></a><a class="mr-key" href="#/mock/' + encodeURIComponent(p.id) + '/paper">With answers' + arr() + '</a></div>';
       }).join("") + '</div></section>';
@@ -943,7 +944,7 @@ V["exam"] = function () {
         '<div class="stat"><div class="k">Then</div><div class="v">Documents</div><div class="s">Certificates in original, medical fitness, police verification. NOC if you are in government service.</div></div></div>' +
       '<p class="muted reveal" style="margin-top:10px">Assistant Officer (AO) posts are filled on the CBT alone; MT posts add the GD and/or interview. The advertisement does not publish the weightage of the CBT against the interview.</p></section>' +
     '<section class="band" id="ex-syl"><h2 class="sec-h reveal">Syllabus, section by section</h2>' +
-      '<p class="muted reveal" style="margin-top:10px">The official wording is shown first. For Professional Knowledge, the topics follow the MT/CO job description in the advertisement (export-import procedures and documentation, container handling, rail operations, warehousing, air cargo operations, logistics software) and the full Commercial &amp; Operations syllabus. Tap a topic to open its notes and videos.</p>' +
+      '<p class="muted reveal" style="margin-top:10px">The official wording is shown first. For Professional Knowledge, the topics cover all ten topics of CONCOR&rsquo;s published MT (C&amp;O) syllabus, plus the job description in the advertisement (export-import procedures and documentation, container handling, rail operations, warehousing, air cargo operations, logistics software). Tap a topic to open its notes and videos.</p>' +
       D.secs.map(function (x) {
         return '<div class="note ex-syl reveal t-' + x.tone + '"><div class="ex-sh"><h3>' + h(x.name) + '</h3><span class="tag' + (x.k === "P" ? ' key' : '') + '">' + x.pre[0] + ' questions</span></div>' +
           (x.official ? '<p class="ex-off">' + h(x.official) + '</p>' : '') + chips(x) + '<a class="ex-go" href="#/practice/' + x.k + '">Practise ' + secQs(x.k).length + ' questions' + arr() + '</a></div>'; }).join("") + '</section>' +
