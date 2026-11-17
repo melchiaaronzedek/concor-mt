@@ -9,7 +9,7 @@
 "use strict";
 
 var EXAM = new Date(2026, 10, 21, 9, 0, 0);      // the CBT, Saturday 21 November 2026
-var VER = "fdc4dd1ddf";
+var VER = "3ef6d9150f";
 var BRAND = "CONCOR MT Compass";
 
 /* ── helpers ── */
@@ -745,7 +745,7 @@ V["practice"] = function (sk, topic) {
   if (sk && (topic || sk === "pyq" || sk === "uiic")) {
     var t = topic ? decodeURIComponent(topic) : "", qs, label;
     if (sk === "pyq") { qs = D.qs.filter(function (q) { return q.kind === "pyq" && (!t || q.s === t); }); label = "Every past-paper question" + (t ? ", " + secOf(t).short : ""); }
-    else if (sk === "uiic") { qs = D.qs.filter(function (q) { return /CONCOR/.test(q.src || "") && q.kind === "pyq" && (!t || q.s === t); }); label = "Every real CONCOR question" + (t ? ", " + secOf(t).short : ""); }
+    else if (sk === "uiic") { qs = D.qs.filter(function (q) { return /CONCOR/.test(q.src || "") && q.kind === "pyq" && (!t || q.s === t); }); label = "Every question from CONCOR's own papers" + (t ? ", " + secOf(t).short : ""); }
     else if (t === "*") { qs = secQs(sk); label = secOf(sk).short + ", all topics"; }
     else { qs = topicQs(sk, t); label = t; }
     qs = orderQs(qs);
@@ -815,7 +815,7 @@ V["mocks"] = function () {
   D.papers.forEach(function (p) { var g = p.group || p.year; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(p); });
   var hist = mockHistory();
   return '<section class="head"><span class="kicker reveal">' + D.papers.length + ' papers · ' + hist.length + ' taken</span><h1 class="page-h reveal">Mocks.</h1>' +
-      '<p class="lede reveal">Full mocks in the exact CONCOR pattern (100 questions, 90 minutes, five sections on one clock), real CONCOR papers recalled by candidates, and practice sets. Mock mode runs them like the hall: one clock, section tabs you can move between, Save &amp; Next, and a quarter mark off for each wrong answer.</p></section>' +
+      '<p class="lede reveal">Full mocks in the exact CONCOR pattern (100 questions, 90 minutes, five sections on one clock), CONCOR's own official model papers (2009, 2012 and 2015, every answer re-checked), and practice sets. No memory-based recall of a real CONCOR sitting exists: CONCOR has run few open MT exams, so the official model papers are the best evidence of what it asks. Mock mode runs them like the hall: one clock, section tabs you can move between, Save &amp; Next, and a quarter mark off for each wrong answer.</p></section>' +
     order.map(function (g) {
       return '<section class="band"><h2 class="sec-h reveal">' + h(g) + '</h2><div class="list" style="margin-top:18px">' + groups[g].map(function (p) {
         var a = att(p.id), s = a && a.done ? paperScore(p.id) : null;
@@ -832,6 +832,7 @@ V["mock"] = function (pid) {
   var a = att(pid), s = a && a.done ? paperScore(pid) : null;
   return '<section class="head"><a class="kicker" href="#/mocks">&#8592; All mocks</a><h1 class="page-h reveal">' + h(p.label) + '</h1>' +
     '<p class="lede reveal">' + p.qids.length + ' questions in ' + p.mins + ' minutes. ' + h(p.note || "") + '</p>' +
+    (p.official ? '<p class="memo-note reveal">CONCOR\'s own model question paper, archived from its recruitment pages. No official key was published, so every answer here was worked out and checked independently; maths and puzzles were checked by code. Dated GK items give the answer as it stood then and today\'s position in the reason.</p>' : '') +
     (p.memo ? '<p class="memo-note reveal">Memory-based: candidates recalled these questions after the exam, so wording can differ slightly. Answers follow the published key; every question has a worked reason.</p>' : '') +
     (s ? '<p class="muted reveal" style="margin-top:14px">Last attempt: ' + fmtM(s.marks) + ' of ' + fmtM(s.max) + ', ' + s.right + ' right, ' + s.wrong + ' wrong.</p>' : '') +
     '<div class="reveal" style="display:flex;gap:10px;margin-top:26px;flex-wrap:wrap">' +
