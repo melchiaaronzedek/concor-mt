@@ -3331,6 +3331,7 @@ body.lp .pn-l a:hover{background:color-mix(in oklab,var(--accent) 11%,transparen
 .fig-s .fa2{fill:#e8590c;fill-opacity:.14;stroke:none}
 .fig-s .fl{fill:var(--paper-2);stroke:none}
 .fig-s .ln.fl,.fig-s .fl.ln{fill:var(--paper-2);stroke:var(--ink)}
+.fig-s polygon.fl:not(.ln):not(.ac):not(.ac2){fill:var(--ink)}
 .fig-s .ln.fa{fill:var(--accent);fill-opacity:.14;stroke:var(--ink)}
 .fig-s .ac.fa{fill:var(--accent);fill-opacity:.14;stroke:var(--accent)}
 .fig-s .ln.fa2,.fig-s .fa2.ln{fill:#e8590c;fill-opacity:.14;stroke:var(--ink)}
