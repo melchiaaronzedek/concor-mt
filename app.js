@@ -9,7 +9,7 @@
 "use strict";
 
 var EXAM = new Date(2026, 10, 21, 9, 0, 0);      // the CBT, Saturday 21 November 2026
-var VER = "d48e870867";
+var VER = "fae6c86905";
 var BRAND = "CONCOR MT Compass";
 
 /* ── helpers ── */
@@ -815,7 +815,7 @@ V["mocks"] = function () {
   D.papers.forEach(function (p) { var g = p.group || p.year; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(p); });
   var hist = mockHistory();
   return '<section class="head"><span class="kicker reveal">' + D.papers.length + ' papers · ' + hist.length + ' taken</span><h1 class="page-h reveal">Mocks.</h1>' +
-      '<p class="lede reveal">Full mocks in the exact CONCOR pattern (100 questions, 90 minutes, five sections on one clock), CONCOR's own official model papers (2009, 2012 and 2015, every answer re-checked), and practice sets. No memory-based recall of a real CONCOR sitting exists: CONCOR has run few open MT exams, so the official model papers are the best evidence of what it asks. Mock mode runs them like the hall: one clock, section tabs you can move between, Save &amp; Next, and a quarter mark off for each wrong answer.</p></section>' +
+      '<p class="lede reveal">Full mocks in the exact CONCOR pattern (100 questions, 90 minutes, five sections on one clock), CONCOR&rsquo;s own official model papers (2009, 2012 and 2015, every answer re-checked), and practice sets. No memory-based recall of a real CONCOR sitting exists: CONCOR has run few open MT exams, so the official model papers are the best evidence of what it asks. Mock mode runs them like the hall: one clock, section tabs you can move between, Save &amp; Next, and a quarter mark off for each wrong answer.</p></section>' +
     order.map(function (g) {
       return '<section class="band"><h2 class="sec-h reveal">' + h(g) + '</h2><div class="list" style="margin-top:18px">' + groups[g].map(function (p) {
         var a = att(p.id), s = a && a.done ? paperScore(p.id) : null;
