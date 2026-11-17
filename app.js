@@ -9,7 +9,7 @@
 "use strict";
 
 var EXAM = new Date(2026, 10, 21, 9, 0, 0);      // the CBT, Saturday 21 November 2026
-var VER = "fae6c86905";
+var VER = "9481978169";
 var BRAND = "CONCOR MT Compass";
 
 /* ── helpers ── */
